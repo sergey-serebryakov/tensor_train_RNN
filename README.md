@@ -1,3 +1,26 @@
+# What's in this fork?
+> This is a fork of this [repository](https://github.com/yuqirose/tensor_train_RNN). It fixes some minor typos and python notebook issues. It also introduces a docker file, fixes python requirements and provides python implementation of example train code originally implemented in python notebook. The goal is to test the training speed.
+
+### Bare metal
+```bash
+virtualenv -p python3 ./.python3
+source ./.python3/bin/activate
+pip install -r ./requirements.txt
+# For quick test
+CUDA_VISIBLE_DEVICES=0 python ./test_trnn.py  --training_steps 100 --display_step 25
+```
+
+### Docker containers
+
+The base docker image for `deepts/tensorflow-1.13-1` is `nvidia/cuda:10.0-cudnn7-runtime-ubuntu16.04` because I had this image on my dev box. 
+
+```bash
+docker build  -t deepts/tensorflow-1.13-1 .
+docker run --rm -ti -v $(pwd):/workspace deepts/tensorflow-1.13-1
+cd /workspace
+CUDA_VISIBLE_DEVICES=0 python ./test_trnn.py  --training_steps 100 --display_step 25
+```
+
 # Tensor Train Recurrent Neural Network 
 
 [![Build Status](https://travis-ci.org/voxpelli/node-github-publish.svg?branch=master)](https://travis-ci.org/voxpelli/node-github-publish)

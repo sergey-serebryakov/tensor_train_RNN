@@ -6,25 +6,26 @@ from tensorflow.python.ops import array_ops
 from tensorflow.python.ops import nn_ops
 from tensorflow.python.ops.math_ops import tanh
 from tensorflow.contrib.rnn import RNNCell
-from tensorflow.python.util import nest
-from tensorflow.contrib.distributions import Bernoulli
-from tensorflow.contrib.layers import fully_connected
+# from tensorflow.python.util import nest
+# from tensorflow.contrib.distributions import Bernoulli
+# from tensorflow.contrib.layers import fully_connected
 from tensorflow.python.ops.rnn_cell_impl import LSTMStateTuple
 
 import numpy as np
-import copy
-from collections import deque
+# import copy
+# from collections import deque
 
 
 class TensorLSTMCell(RNNCell):
     """LSTM cell with high order correlations with tensor contraction"""
-    def __init__(self, num_units, num_lags, rank_vals, forget_bias=1.0, state_is_tuple=True, activation=tanh, reuse=None):
+    def __init__(self, num_units, num_lags, rank_vals, forget_bias=1.0,
+                 state_is_tuple=True, activation=tanh, reuse=None):
         super(TensorLSTMCell, self).__init__(_reuse=reuse)
         self._num_units = num_units
         self._num_lags = num_lags
         self._rank_vals = rank_vals
         self._forget_bias = forget_bias
-        self._state_is_tuple= state_is_tuple
+        self._state_is_tuple = state_is_tuple
         self._activation = activation
         
     @property
@@ -36,14 +37,14 @@ class TensorLSTMCell(RNNCell):
     def output_size(self):
         return self._num_units
 
-    def __call__(self, inputs, states):
+    def __call__(self, inputs, states, scope=None):
         """Now we have multiple states, state->states"""
         sigmoid = tf.sigmoid
         # Parameters of gates are concatenated into one multiply for efficiency.
         if self._state_is_tuple:
             hs = ()
             for state in states:
-            # every state is a tuple of (c,h)
+                # every state is a tuple of (c,h)
                 c, h = state
                 hs += (h,)
         else:
@@ -57,8 +58,7 @@ class TensorLSTMCell(RNNCell):
         # i = input_gate, j = new_input, f = forget_gate, o = output_gate
         i, j, f, o = array_ops.split(value=concat, num_or_size_splits=4, axis=1)
 
-        new_c = (
-            c * sigmoid(f + self._forget_bias) + sigmoid(i) * self._activation(j))
+        new_c = (c * sigmoid(f + self._forget_bias) + sigmoid(i) * self._activation(j))
         new_h = self._activation(new_c) * sigmoid(o)
 
         if self._state_is_tuple:
@@ -67,11 +67,10 @@ class TensorLSTMCell(RNNCell):
             new_state = array_ops.concat([new_c, new_h], 1)
         return new_h, new_state
     
-    
 
 def _linear(args, output_size, bias, bias_start=0.0):
     total_arg_size = 0
-    shapes= [a.get_shape() for a in args]
+    shapes = [a.get_shape() for a in args]
     for shape in shapes:
         total_arg_size += shape[1].value
     dtype = [a.dtype for a in args][0]
@@ -85,19 +84,21 @@ def _linear(args, output_size, bias, bias_start=0.0):
             return res
         with vs.variable_scope(outer_scope) as inner_scope:
             biases = vs.get_variable("biases", [output_size], dtype=dtype)
-    return  nn_ops.bias_add(res,biases)
+    return nn_ops.bias_add(res, biases)
+
 
 def _shape_value(tensor):
     shape = tensor.get_shape()
     return [s.value for s in shape]
 
+
 def _outer_product(batch_size, tensor, vector):
     """tensor-vector outer-product"""
-    tensor_flat= tf.expand_dims(tf.reshape(tensor, [batch_size,-1]), 2)
+    tensor_flat = tf.expand_dims(tf.reshape(tensor, [batch_size, -1]), 2)
     vector_flat = tf.expand_dims(vector, 1)
     res = tf.matmul(tensor_flat, vector_flat)
-    new_shape =  [batch_size]+_shape_value(tensor)[1:]+_shape_value(vector)[1:]
-    res = tf.reshape(res, new_shape )
+    new_shape = [batch_size]+_shape_value(tensor)[1:]+_shape_value(vector)[1:]
+    res = tf.reshape(res, new_shape)
     return res
 
 
@@ -127,7 +128,7 @@ def tensor_train_contraction(states_tensor, cores):
 
     num_orders = len(cores)
     # first factor
-    x = "z" + ijk[:num_orders] # "z" is the batch dimension
+    x = "z" + ijk[:num_orders]  # "z" is the batch dimension
     
     # print(mat_core.get_shape().as_list())
 
@@ -168,12 +169,12 @@ def tensor_network_tt_einsum(inputs, states, output_size, rank_vals, bias, bias_
     # print("Using Einsum Tensor-Train decomposition.")
 
     """tensor train decomposition for the full tenosr """
-    num_orders = len(rank_vals)+1#alpha_1 to alpha_{K-1}
+    num_orders = len(rank_vals)+1  # alpha_1 to alpha_{K-1}
     num_lags = len(states)
     batch_size = tf.shape(inputs)[0] 
-    state_size = states[0].get_shape()[1].value #hidden layer size
-    input_size= inputs.get_shape()[1].value
-    total_state_size = (state_size * num_lags + 1 )
+    state_size = states[0].get_shape()[1].value   # hidden layer size
+    input_size = inputs.get_shape()[1].value
+    total_state_size = (state_size * num_lags + 1)
 
     # These bookkeeping variables hold the dimension information that we'll
     # use to store and access the transition tensor W efficiently.
@@ -190,21 +191,21 @@ def tensor_network_tt_einsum(inputs, states, output_size, rank_vals, bias, bias_
     # This stores the boundary indices for the factors A. Starting from 0,
     # each index i is computed by adding the number of weights in the i'th
     # factor A^i.
-    mat_ps = np.cumsum(np.concatenate(([0], mat_ranks[:-1] * mat_dims * mat_ranks[1:])),dtype=np.int32)
+    mat_ps = np.cumsum(np.concatenate(([0], mat_ranks[:-1] * mat_dims * mat_ranks[1:])), dtype=np.int32)
     mat_size = mat_ps[-1]
 
     # Compute U * x
-    weights_x = vs.get_variable("weights_x", [input_size, output_size] )
+    weights_x = vs.get_variable("weights_x", [input_size, output_size])
     out_x = tf.matmul(inputs, weights_x)
 
     # Get a variable that holds all the weights of the factors A^i of the
     # transition tensor W. All weights are stored serially, so we need to do
     # some bookkeeping to keep track of where each factor is stored.
-    mat = vs.get_variable("weights_h", mat_size) # h_z x h_z... x output_size
+    mat = vs.get_variable("weights_h", mat_size)  # h_z x h_z... x output_size
 
-    #mat = tf.Variable(mat, name="weights")
+    # mat = tf.Variable(mat, name="weights")
     states_vector = tf.concat(states, 1)
-    states_vector = tf.concat( [states_vector, tf.ones([batch_size, 1])], 1)
+    states_vector = tf.concat([states_vector, tf.ones([batch_size, 1])], 1)
     """form high order state tensor"""
     states_tensor = states_vector
     for order in range(num_orders-1):
@@ -230,4 +231,4 @@ def tensor_network_tt_einsum(inputs, states, output_size, rank_vals, bias, bias_
         return res
     biases = vs.get_variable("biases", [output_size])
 
-    return nn_ops.bias_add(res,biases)
+    return nn_ops.bias_add(res, biases)
