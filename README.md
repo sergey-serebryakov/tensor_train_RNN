@@ -16,10 +16,12 @@ The base docker image for `deepts/tensorflow-1.13-1` is `nvidia/cuda:10.0-cudnn7
 
 ```bash
 docker build  -t deepts/tensorflow-1.13-1 .
-docker run --rm -ti -v $(pwd):/workspace deepts/tensorflow-1.13-1
+nvidia-docker run --rm -ti -v $(pwd):/workspace deepts/tensorflow-1.13-1
 cd /workspace
 CUDA_VISIBLE_DEVICES=0 python ./test_trnn.py  --training_steps 100 --display_step 25
 ```
+
+CUDA_VISIBLE_DEVICES=0 python ./test_trnn.py  --training_steps 10000 --display_step 500
 
 # Tensor Train Recurrent Neural Network 
 

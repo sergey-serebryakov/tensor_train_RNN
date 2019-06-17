@@ -165,8 +165,9 @@ with tf.Session() as sess:
             iter_time = timer() - iter_start
             if step != 1:
                 iter_times.append(iter_time)
-            print("Step {:>5}, iter time = {:.4f} seconds, minibatch loss = {:.4f}, validation loss = {:.4f}".format(
-                step, iter_time, loss, va_loss))
+            throughput = float(display_step * batch_size) / iter_time
+            print("Step {:>5}, iter time = {:.4f} seconds, throughput = {:.2f} seq/s, minibatch loss = {:.4f}, "
+                  "validation loss = {:.4f}".format(step, iter_time, throughput, loss, va_loss))
             iter_start = timer()
 
     average_iter_time = None

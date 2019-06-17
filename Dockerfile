@@ -30,3 +30,5 @@ RUN pip --no-cache-dir install \
         tensorflow-gpu==1.13.1 \
         matplotlib \
         six
+
+ENV LD_LIBRARY_PATH /usr/local/cuda/compat:$LD_LIBRARY_PATH
