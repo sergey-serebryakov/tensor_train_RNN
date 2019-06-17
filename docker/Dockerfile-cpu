@@ -1,4 +1,6 @@
-FROM nvidia/cuda:10.0-cudnn7-runtime-ubuntu16.04
+FROM ubuntu:16.04
+
+MAINTAINER Sergey Serebryakov <sergey.serebryakov@hpe.com>
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
         apt-utils \
@@ -26,9 +28,17 @@ RUN curl -fSsL -O https://bootstrap.pypa.io/get-pip.py && \
 
 RUN rm -f /usr/bin/python && ln -s /usr/bin/python3 /usr/bin/python
 
+# Better way to do it? This results in re-installing all python packages that takes time.
+# RUN pip install -r /athena/requirements/python3.txt
 RUN pip --no-cache-dir install \
-        tensorflow-gpu==1.13.1 \
-        matplotlib \
-        six
+    matplotlib==3.0.2 \
+    h5py==2.9.0 \
+    numpy==1.16.0 \
+    scipy==1.2.0 \
+    scikit-learn==0.20.2 \
+    pandas==0.23.4 \
+    future==0.17.1 \
+    absl-py==0.7.0 \
+    tensorboard==1.13.1 \
+    tensorflow==1.13.1
 
-ENV LD_LIBRARY_PATH /usr/local/cuda/compat:$LD_LIBRARY_PATH
